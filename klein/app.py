@@ -18,7 +18,7 @@ from zope.interface import implements
 from klein.resource import KleinResource
 from klein.interfaces import IKleinRequest
 
-__all__ = ['Klein', 'run', 'route', 'resource']
+__all__ = ['Klein', 'run', 'route', 'resource', 'addFactory']
 
 
 class KleinRequest(object):
@@ -48,6 +48,7 @@ class Klein(object):
     def __init__(self):
         self._url_map = Map()
         self._endpoints = {}
+        self.factories = []
 
 
     @property
@@ -113,6 +114,18 @@ class Klein(object):
 
         return deco
 
+    def addFactory(self, port, factory):
+        """
+        Add another service to listen on C{port} using the factory C{factory}
+
+        @param port: The TCP port to accept HTTP requests on
+        @type port: int
+
+        @param factory: The factory that will handle connections
+        @type factory: factory instance
+        """
+        self.factories.append((port, factory))
+
 
     def run(self, host, port, logFile=None):
         """
@@ -139,6 +152,8 @@ class Klein(object):
 
         log.startLogging(logFile)
         reactor.listenTCP(port, Site(self.resource()), interface=host)
+        for i in self.factories:
+            reactor.listenTCP(*i, interface=host)
         reactor.run()
 
 
@@ -147,3 +162,4 @@ _globalKleinApp = Klein()
 route = _globalKleinApp.route
 run = _globalKleinApp.run
 resource = _globalKleinApp.resource
+addFactory = _globalKleinApp.addFactory
