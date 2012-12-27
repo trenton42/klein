@@ -70,6 +70,9 @@ class KleinResource(Resource):
         d = defer.maybeDeferred(handler, request, **kwargs)
 
         def process(r):
+            if r == server.NOT_DONE_YET:
+                return
+
             if IResource.providedBy(r):
                 while (request.postpath and
                        request.postpath != kleinRequest.branch_segments):

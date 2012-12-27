@@ -10,7 +10,7 @@ from werkzeug.routing import Map, Rule
 from twisted.python import log
 from twisted.python.components import registerAdapter
 
-from twisted.web.server import Site, Request
+from twisted.web.server import Site, Request, NOT_DONE_YET
 from twisted.internet import reactor
 
 from zope.interface import implements
@@ -18,7 +18,7 @@ from zope.interface import implements
 from klein.resource import KleinResource
 from klein.interfaces import IKleinRequest
 
-__all__ = ['Klein', 'run', 'route', 'resource', 'addFactory']
+__all__ = ['Klein', 'run', 'route', 'routeUrl', 'redirect', 'resource', 'addFactory']
 
 
 class KleinRequest(object):
@@ -50,7 +50,6 @@ class Klein(object):
         self._endpoints = {}
         self.factories = []
 
-
     @property
     def url_map(self):
         """
@@ -58,14 +57,12 @@ class Klein(object):
         """
         return self._url_map
 
-
     @property
     def endpoints(self):
         """
         Read only property exposing L{Klein._endpoints}.
         """
         return self._endpoints
-
 
     def resource(self):
         """
@@ -75,7 +72,6 @@ class Klein(object):
         """
 
         return KleinResource(self)
-
 
     def route(self, url, *args, **kwargs):
         """
@@ -114,6 +110,42 @@ class Klein(object):
 
         return deco
 
+    def routeUrl(self, url, func, *args, **kwargs):
+        """
+        A non-decorator method for route.
+
+        ::
+            def index(request):
+                return "Hello"
+
+            app.routeUrl("/", index)
+        """
+
+        deco = self.route(url, *args, **kwargs)
+        deco(func)
+
+    def redirect(self, request, url):
+        """
+        Redirct to C{url}.
+
+        ::
+            @app.route("/")
+            def index(request):
+                return app.redirect(request, "/somewhere_else")
+
+        @param request: The request passed from the calling function
+        @type request: L{twisted.web.server.Request}
+
+        @param url: A url to redirect to.
+        @type url: str
+
+        @returns: twisted.web.server.NOT_DONE_YET
+        """
+
+        request.redirect(url)
+        request.finish()
+        return NOT_DONE_YET
+
     def addFactory(self, port, factory):
         """
         Add another service to listen on C{port} using the factory C{factory}
@@ -125,7 +157,6 @@ class Klein(object):
         @type factory: factory instance
         """
         self.factories.append((port, factory))
-
 
     def run(self, host, port, logFile=None):
         """
@@ -152,7 +183,9 @@ class Klein(object):
 
         log.startLogging(logFile)
         reactor.listenTCP(port, Site(self.resource()), interface=host)
+        print '*' * 10, 'incoming!', self.factories
         for i in self.factories:
+            print 'listening on ', i[0]
             reactor.listenTCP(*i, interface=host)
         reactor.run()
 
@@ -163,3 +196,5 @@ route = _globalKleinApp.route
 run = _globalKleinApp.run
 resource = _globalKleinApp.resource
 addFactory = _globalKleinApp.addFactory
+routeUrl = _globalKleinApp.routeUrl
+redirect = _globalKleinApp.redirect
