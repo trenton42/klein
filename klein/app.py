@@ -48,6 +48,7 @@ class Klein(object):
     def __init__(self):
         self._url_map = Map()
         self._endpoints = {}
+        self._request_handler = None
         self.factories = []
 
     @property
@@ -124,6 +125,13 @@ class Klein(object):
         deco = self.route(url, *args, **kwargs)
         deco(func)
 
+    def addRequestHandler(self, func):
+        """
+        Add a function to be called before the url handler to do
+        something with the request (e.g. Session initialization).
+        """
+        self._request_handler = func
+
     def redirect(self, request, url):
         """
         Redirct to C{url}.
@@ -198,3 +206,4 @@ resource = _globalKleinApp.resource
 addFactory = _globalKleinApp.addFactory
 routeUrl = _globalKleinApp.routeUrl
 redirect = _globalKleinApp.redirect
+addRequestHandler = _globalKleinApp.addRequestHandler
