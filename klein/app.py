@@ -48,7 +48,7 @@ class Klein(object):
     def __init__(self):
         self._url_map = Map()
         self._endpoints = {}
-        self._request_handler = None
+        self._request_handlers = []
         self.factories = []
 
     @property
@@ -130,7 +130,7 @@ class Klein(object):
         Add a function to be called before the url handler to do
         something with the request (e.g. Session initialization).
         """
-        self._request_handler = func
+        self._request_handlers.append(func)
 
     def redirect(self, request, url):
         """

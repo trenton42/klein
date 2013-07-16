@@ -71,9 +71,15 @@ class KleinResource(Resource):
             d = defer.maybeDeferred(handler, request, **kwargs)
             return d
 
+        @defer.inlineCallbacks
+        def _run_handlers(request):
+            for i in self._app._request_handlers:
+                yield defer.maybeDeferred(i, request)
+            defer.returnValue(None)
+
         # Run request handler, if present
-        if self._app._request_handler is not None:
-            d = defer.maybeDeferred(self._app._request_handler, request)
+        if self._app._request_handlers:
+            d = _run_handlers(request)
             d.addCallback(_pre_process)
         else:
             d = _pre_process(None)
